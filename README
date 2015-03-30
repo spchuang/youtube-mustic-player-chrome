@@ -1,0 +1,7 @@
+Must be able to stream audio from YouTube (must not output video)
+Must be able to play audio in background
+Must be lightweight (can be played without YT page open)
+Must be able to add songs to playlists using YT URLs with your custom name
+Must be able to save playlists (either to an account or to browser custom data)
+Must be able to play, pause, change volume, skip track, seek
+Must be able to add multiple playlists, as well as rearrange them, and delete them

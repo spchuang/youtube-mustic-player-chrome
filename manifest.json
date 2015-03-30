@@ -8,10 +8,15 @@
          "38": "icons/38x38.png"
       },
       "default_title": "Music Player",
-      "default_popup": "browseraction/popup.html"
+      "default_popup": "popup.html"
    },
+   "permissions": [
+      "http://*/*",
+      "https://*/*",
+      "tabs"
+   ],
+   "content_security_policy": "script-src 'self' 'unsafe-eval' https://ssl.google-analytics.com https://www.youtube.com https://s.ytimg.com https://gdata.youtube.com; object-src 'self'",
    "background": {
-      "scripts": ["background.js"],
-      "persistent": true
+      "page" : "background.html"
    }
 }

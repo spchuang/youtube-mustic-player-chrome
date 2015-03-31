@@ -60,13 +60,17 @@
       addOnStateChange : function(cb){
          this.callback = cb;
       },
+      seekTo: function(val) {
+          this.player.seekTo(val);
+      },
       play: function() {
          this.player.playVideo();
       },
       pause: function() {
          this.player.pauseVideo();
 
-      }
+      },
+      
    }
 
    /*

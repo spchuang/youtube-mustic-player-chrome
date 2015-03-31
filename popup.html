@@ -8,10 +8,15 @@
     <link href="bootstrap-3.3.4/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
     <style>
       #popup-content{
-         width: 300px;
+         width: 350px;
       }
       .player-view{
-         width: 300px;
+         width: 350px;
+      }
+
+      .player-view .loading-sign{
+         width: 17px;
+         height: 17px;
       }
 
       .player-view > div{
@@ -20,16 +25,24 @@
          font-size: 14px;
       }
       .player-view .control-btn{
-         width: 15px;
-         height: 15px;
-         line-height: 15px;
+         width: 17px;
+         height: 17px;
+         line-height: 17px;
       }
 
       .player-view .progress{
          height: 10px;
-         width: 200px;
+         width: 230px;
          margin-top: 5px;
+         cursor: pointer;
       }
+
+      .player-view .progress-bar{
+         -webkit-transition: width .1s ease;
+         -o-transition: width .1s ease;
+         transition: width .1s ease;
+      }
+
     </style>
 </head>
 

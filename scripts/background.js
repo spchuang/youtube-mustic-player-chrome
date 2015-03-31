@@ -16,6 +16,19 @@
       }
    }
 
+   function toHHMMSS(second) {
+      var sec_num = parseInt(second, 10); // don't forget the second param
+      var hours   = Math.floor(sec_num / 3600);
+      var minutes = Math.floor((sec_num - (hours * 3600)) / 60);
+      var seconds = sec_num - (hours * 3600) - (minutes * 60);
+
+      if (hours   < 10) {hours   = "0"+hours;}
+      if (minutes < 10) {minutes = "0"+minutes;}
+      if (seconds < 10) {seconds = "0"+seconds;}
+      var time    = hours+':'+minutes+':'+seconds;
+      return time;
+   }
+
    /*
        Create the popup view
        Note: popup and background share the same process so variables could be exchagned freely
@@ -27,8 +40,9 @@
    var popupHtml = "\
       <div class='popup-wrap'>\
       <label>Play music: </label><input type='text' class='add-music-input'>\
+      <hr>\
       <div class='player-view'>\
-         <div class='control-btn loading-sign'></div>\
+         <div class='control-btn'><img class='loading-sign' src='player-icons/ajax-loader.gif'></div>\
          <div class='control-btn action-btn'></div>\
          <div class='control-btn prev-btn'>\
             <a href='#'><span class='glyphicon glyphicon-fast-backward'></span></a>\
@@ -38,6 +52,9 @@
          </div>\
          <div class='progress'>\
             <div class='progress-bar' aria-valuenow='0' aria-valuemin='0' aria-valuemax='100' style='width: 0%'></div>\
+         </div>\
+         <div class='progress-text'>\
+            <span class='progress-elapsed'></span> / <span class='progress-duration'></span>\
          </div>\
          <div class='time'></div>\
       </div></div>\
@@ -93,19 +110,30 @@
             "keydown .add-music-input" : "onAddSongKeyUp",
             'click .action-btn': 'onActionClick',
             'click .next-btn' : 'onNextClick',
-            "click .prev-btn" : "onPrevClick"
+            "click .prev-btn" : "onPrevClick",
+            'click .progress' : "onProgressClick"
          },
          updateState: function(){
             // load correct initial state
 
-            console.log(this.state);
-            this.$(".loading-sign").text("");
+            //console.log(this.state);
+            //this.$(".loading-sign").text("");
             if(this.state === YT.PlayerState.BUFFERING) {
-               this.$(".loading-sign").text("loading");
-            } else if (this.state === YT.PlayerState.PLAYING) {
+               this.$(".loading-sign").show();
+               this.$(".progress-text").hide();
+            }else{
+               this.$(".loading-sign").hide();
+               this.duration = YTPlayer.player.getDuration();
+               
+               this.$(".progress-text .progress-elapsed").text(toHHMMSS(this.elapsed));
+               this.$(".progress-text .progress-duration").text(toHHMMSS(this.duration));
+               this.$(".progress-text").show();
+            }
+
+            if (this.state === YT.PlayerState.PLAYING) {
                this.$(".action-btn").empty().append("<a href='#'><span class='glyphicon glyphicon-pause'></span></a>");
 
-               this.duration = YTPlayer.player.getDuration();
+
                this.updateProgess();
             } else{
                this.$(".action-btn").empty().append("<a href='#'><span class='glyphicon glyphicon-play'></span></a>");
@@ -116,10 +144,10 @@
             // get updated time
             _.delay(function() {
                that.elapsed = YTPlayer.player.getCurrentTime();
-
                //that.elapsed = player.getCurrentTime();
                var value = that.elapsed / that.duration * 100;
-               
+
+               that.$(".progress-text .progress-elapsed").text(toHHMMSS(that.elapsed));
                that.$('.progress-bar').css('width', value+'%').attr('aria-valuenow', value);
 
                that.updateProgess();
@@ -133,7 +161,8 @@
                var vid = extractYoutubeVid(this.addInput.val());
                if (vid){
                   YTPlayer.loadId(vid);
-                  this.$(".loading-sign").text("loading");
+                  this.$(".loading-sign").show();
+                  this.$(".progress-text").hide();
                   this.addInput.val("");
                }
 
@@ -153,17 +182,20 @@
          onNextClick: function(){
             console.log("Next");
          },
-         onProgressClick: function(){
+         onProgressClick: function(evt){
+            // detect the horizontal position of the click
+            var offset = $(evt.target).offset();
+            var x = evt.clientX - offset.left;
 
-         },
-         onProgressUpdate: function(){
+            // calculate the time to seek
+            var time = x/$(evt.target).width() * this.duration;
 
+            YTPlayer.seekTo(time);
          },
          onPlayerStateChange: function(evt){
             // response to player state changes
             this.state = evt.data;
             this.updateState();
-
          }
       });
    };
@@ -175,8 +207,8 @@
 
 
       YTPlayer.addOnStateChange($.proxy(playerView.onPlayerStateChange,playerView));
-      $content.append(playerView.$el);
       playerView.updateState();
+      $content.append(playerView.$el);
    }
 
 

@@ -1,3 +1,9 @@
+What is it
+----------------
+A chrome plugin for playing youtube videos. It can play music from Youtube in the background and keeps track of a playlist which is persisted to browser's local storage.
+
+Requirements
+----------------
 Must be able to stream audio from YouTube (must not output video)
 Must be able to play audio in background
 Must be lightweight (can be played without YT page open)

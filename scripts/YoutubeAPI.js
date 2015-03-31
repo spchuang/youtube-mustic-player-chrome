@@ -1,18 +1,55 @@
-(function( $, window ){
-   var deferred = $.Deferred();
-   var player;
-   var callback;
-   var events =  {
-      'onReady': function(){
+(function($, window ){
+   'use strict';
 
-         console.log("Youtube player loaded");
+   var deferred = $.Deferred();
+
+   var events = {
+      'onReady': function(){
+         // pass a reference to this player object
+         deferred.resolve(YTPlayer);
       },
       'onStateChange': function(evt){
-         if(_.isFunction(callback)){
-            callback(evt);
-         }
+         // handle its own handler
+
+         // handle external listeners
+         _.each(YTPlayer.callbacks, function(cb){
+            if(_.isFunction(cb)){
+               cb(evt);
+            }
+         });
       }
    }
+
+
+   /*
+      Main player controlling object
+   */
+   var YTPlayer = {
+      init: function(){
+         this.callbacks = [];
+         this.player = new YT.Player('player', {
+            height: '390',
+            width: '640',
+            events: events
+         });
+      },
+      loadId: function(vid){
+         player.loadVideoById(vid, 0);
+         //player.playVideo();
+      },
+
+      onElapsedUpdate: function(){
+
+      },
+
+      addOnStateChange : function(cb){
+         this.callbacks.push(cb);
+      }
+   }
+
+   /*
+      Initializing/ Setting up Youtube API
+   */
 
    function loadYouTubeAPIScript(){
       // load the IFrame Player API code asynchronously.
@@ -23,22 +60,16 @@
    }
 
    window.onYouTubeIframeAPIReady = function() {
-      player = new YT.Player('player', {
-         height: '390',
-         width: '640',
-         events: events
-      });
+      YTPlayer.init();
    }
 
 
-
-
+   // expose this for global access
    $.loadYoutubeAPI = function(){
       loadYouTubeAPIScript();
-      
+
       // return promise
       return deferred.promise();
-
    }
 
 })( jQuery, window);

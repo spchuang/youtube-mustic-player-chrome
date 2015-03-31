@@ -3,18 +3,39 @@
 
 <head>
     <!--<link href="styles/main.css" rel="stylesheet">!-->
-    <script src="jquery-2.0.3.min.js"></script>
+    <script src="scripts/vendors/jquery-2.0.3.min.js"></script>
+
+    <link href="bootstrap-3.3.4/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
     <style>
       #popup-content{
+         width: 300px;
+      }
+      .player-view{
+         width: 300px;
+      }
+
+      .player-view > div{
+         float: left;
+         margin: 0 2px;
+         font-size: 14px;
+      }
+      .player-view .control-btn{
+         width: 15px;
+         height: 15px;
+         line-height: 15px;
+      }
+
+      .player-view .progress{
+         height: 10px;
          width: 200px;
+         margin-top: 5px;
       }
     </style>
 </head>
 
 <body>
-	<div id='popup-content' >
-      adfasdf
-	</div>
+	<div id='popup-content'></div>
+
 </body>
 <script type="text/javascript" src="scripts/popup.js"></script>
 

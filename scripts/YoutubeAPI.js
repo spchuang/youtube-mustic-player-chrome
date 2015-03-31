@@ -12,12 +12,28 @@
          // handle its own handler
 
          // handle external listeners
-         _.each(YTPlayer.callbacks, function(cb){
+         /*_.each(YTPlayer.callbacks, function(cb){
             if(_.isFunction(cb)){
                cb(evt);
             }
-         });
+         });*/
+
+         if(_.isFunction(YTPlayer.callback)){
+            YTPlayer.callback(evt);
+         }
       }
+   }
+
+   function updateElapsed() {
+      _.delay(function() {
+         YTCPlayer.elapsed = player.getCurrentTime();
+
+         /*if (YTCPlayer.status === YT.PlayerState.PLAYING) {
+           saveState();
+        }*/
+         updateElapsed();
+      }, 250);
+
    }
 
 
@@ -26,24 +42,30 @@
    */
    var YTPlayer = {
       init: function(){
-         this.callbacks = [];
+         this.callback = null;
          this.player = new YT.Player('player', {
             height: '390',
             width: '640',
+            videoId: 'OwHc05fu-YY',
             events: events
          });
       },
       loadId: function(vid){
-         player.loadVideoById(vid, 0);
-         //player.playVideo();
+         this.player.loadVideoById(vid, 0);
+         this.player.playVideo();
       },
-
       onElapsedUpdate: function(){
 
       },
-
       addOnStateChange : function(cb){
-         this.callbacks.push(cb);
+         this.callback = cb;
+      },
+      play: function() {
+         this.player.playVideo();
+      },
+      pause: function() {
+         this.player.pauseVideo();
+
       }
    }
 

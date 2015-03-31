@@ -25,6 +25,7 @@
    var pauseBtnHtml = "<a href='#'><span class='glyphicon glyphicon-fast-pause'></span></a>";
 
    var popupHtml = "\
+      <div class='popup-wrap'>\
       <label>Play music: </label><input type='text' class='add-music-input'>\
       <div class='player-view'>\
          <div class='control-btn loading-sign'></div>\
@@ -36,10 +37,10 @@
             <a href='#'><span class='glyphicon glyphicon-fast-forward'></span></a>\
          </div>\
          <div class='progress'>\
-            <div class='progress-bar' aria-valuenow='60' aria-valuemin='0' aria-valuemax='100' style='width: 40%'></div>\
+            <div class='progress-bar' aria-valuenow='0' aria-valuemin='0' aria-valuemax='100' style='width: 0%'></div>\
          </div>\
          <div class='time'></div>\
-      </div>\
+      </div></div>\
    ";
 
    var BaseView = {
@@ -82,93 +83,116 @@
       return createView({
          $el: $(popupHtml),
          init: function(){
-            console.log(this.$el.html());
             this.addInput = this.$(".add-music-input");
-            console.log(this.addInput);
+            this.elapsed = 0;
+            this.duration = 0;
+
+            this.state = YTPlayer.player.getPlayerState();
          },
          events: {
             "keydown .add-music-input" : "onAddSongKeyUp",
+            'click .action-btn': 'onActionClick',
+            'click .next-btn' : 'onNextClick',
             "click .prev-btn" : "onPrevClick"
          },
-         renderInitialState: function(){
+         updateState: function(){
             // load correct initial state
-            //console.log(YTPlayer.player.getPlayerState());
+
+            console.log(this.state);
+            this.$(".loading-sign").text("");
+            if(this.state === YT.PlayerState.BUFFERING) {
+               this.$(".loading-sign").text("loading");
+            } else if (this.state === YT.PlayerState.PLAYING) {
+               this.$(".action-btn").empty().append("<a href='#'><span class='glyphicon glyphicon-pause'></span></a>");
+
+               this.duration = YTPlayer.player.getDuration();
+               this.updateProgess();
+            } else{
+               this.$(".action-btn").empty().append("<a href='#'><span class='glyphicon glyphicon-play'></span></a>");
+            }
+         },
+         updateProgess: function(){
+            var that = this;
+            // get updated time
+            _.delay(function() {
+               that.elapsed = YTPlayer.player.getCurrentTime();
+
+               //that.elapsed = player.getCurrentTime();
+               var value = that.elapsed / that.duration * 100;
+               
+               that.$('.progress-bar').css('width', value+'%').attr('aria-valuenow', value);
+
+               that.updateProgess();
+            }, 250);
          },
          onAddSongKeyUp: function(evt){
             var key = evt.keyCode || evt.which,
                ENTER_KEY = 13;
-            console.log("WHAT");
             if(key == ENTER_KEY){
 
                var vid = extractYoutubeVid(this.addInput.val());
+               if (vid){
+                  YTPlayer.loadId(vid);
+                  this.$(".loading-sign").text("loading");
+                  this.addInput.val("");
+               }
 
-               YTPlayer.loadId(vid);
-
-
-               console.log(vid);
-               this.addInput.val("");
                evt.preventDefault();
-
             }
          },
          onActionClick: function(){
-
+            if(this.state === YT.PlayerState.PLAYING) {
+               YTPlayer.pause();
+            } else {
+               YTPlayer.play();
+            }
          },
          onPrevClick: function(){
             console.log("PREV");
          },
          onNextClick: function(){
-
+            console.log("Next");
          },
          onProgressClick: function(){
 
          },
-         onPlayerStateChange: function(){
+         onProgressUpdate: function(){
+
+         },
+         onPlayerStateChange: function(evt){
+            // response to player state changes
+            this.state = evt.data;
+            this.updateState();
 
          }
       });
    };
 
-
    window.compilePopup = function(content){
       var $content = $(content);
 
-      /*
-      var input = $("<input type='text' id='add-music'></input>");
-
-      input.on('keydown', function(evt){
-         var key = evt.keyCode || evt.which,
-            ENTER_KEY = 13;
-
-         if(key == ENTER_KEY){
-
-            var vid = extractYoutubeVid($(this).val());
-
-            player.loadVideoById(vid, 0);
-            player.playVideo();
-
-            console.log(vid);
-            evt.preventDefault();
-         }
-      });*/
       var playerView = createPlayerView();
+
+
+      YTPlayer.addOnStateChange($.proxy(playerView.onPlayerStateChange,playerView));
       $content.append(playerView.$el);
-      playerView.renderInitialState();
+      playerView.updateState();
    }
 
 
    function success(p){
       // When Youtube library is loaded successfully
       YTPlayer = p;
-
+      /*
       p.addOnStateChange(function(evt){
          // buffering: show loading sign
 
          // playing: show "pause" sign
 
          // pause: show "playing" sign
-         console.log(evt);
-      });
+
+      });*/
+
 
       console.log("API loaded");
       //player.playVideo();

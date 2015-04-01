@@ -16,6 +16,7 @@
       }
    }
 
+   // convert time in seconds to formated (HH::MM:SS)
    function toHHMMSS(second) {
       var sec_num = parseInt(second, 10); // don't forget the second param
       var hours   = Math.floor(sec_num / 3600);
@@ -29,6 +30,8 @@
       return time;
    }
 
+
+
    /*
        Create the popup view
        Note: popup and background share the same process so variables could be exchagned freely
@@ -41,6 +44,7 @@
       <div class='popup-wrap'>\
       <label>Play music: </label><input type='text' class='add-music-input'>\
       <hr>\
+      <div class='video-title'><p></p></div>\
       <div class='player-view'>\
          <div class='control-btn'><img class='loading-sign' src='player-icons/ajax-loader.gif'></div>\
          <div class='control-btn action-btn'></div>\
@@ -101,8 +105,8 @@
          $el: $(popupHtml),
          init: function(){
             this.addInput = this.$(".add-music-input");
-            this.elapsed = 0;
-            this.duration = 0;
+            this.elapsed = YTPlayer.player.getCurrentTime();;
+            this.duration = YTPlayer.player.getDuration();
 
             this.state = YTPlayer.player.getPlayerState();
          },
@@ -113,31 +117,38 @@
             "click .prev-btn" : "onPrevClick",
             'click .progress' : "onProgressClick"
          },
+         updateVideoTitle: function(){
+            this.$(".video-title p").text(YTPlayer.title);
+         },
          updateState: function(){
             // load correct initial state
+            this.updateProgressBar();
 
-            //console.log(this.state);
-            //this.$(".loading-sign").text("");
             if(this.state === YT.PlayerState.BUFFERING) {
                this.$(".loading-sign").show();
                this.$(".progress-text").hide();
             }else{
                this.$(".loading-sign").hide();
                this.duration = YTPlayer.player.getDuration();
-               
-               this.$(".progress-text .progress-elapsed").text(toHHMMSS(this.elapsed));
+
+               this.updateElapseText();
                this.$(".progress-text .progress-duration").text(toHHMMSS(this.duration));
                this.$(".progress-text").show();
             }
 
             if (this.state === YT.PlayerState.PLAYING) {
                this.$(".action-btn").empty().append("<a href='#'><span class='glyphicon glyphicon-pause'></span></a>");
-
-
                this.updateProgess();
             } else{
                this.$(".action-btn").empty().append("<a href='#'><span class='glyphicon glyphicon-play'></span></a>");
             }
+         },
+         updateElapseText: function(){
+            this.$(".progress-text .progress-elapsed").text(toHHMMSS(this.elapsed));
+         },
+         updateProgressBar: function(){
+            var value = this.elapsed / this.duration * 100;
+            this.$('.progress-bar').css('width', value+'%').attr('aria-valuenow', value);
          },
          updateProgess: function(){
             var that = this;
@@ -145,25 +156,30 @@
             _.delay(function() {
                that.elapsed = YTPlayer.player.getCurrentTime();
                //that.elapsed = player.getCurrentTime();
-               var value = that.elapsed / that.duration * 100;
 
-               that.$(".progress-text .progress-elapsed").text(toHHMMSS(that.elapsed));
-               that.$('.progress-bar').css('width', value+'%').attr('aria-valuenow', value);
+               that.updateElapseText();
+               that.updateProgressBar();
 
+               // recursive
                that.updateProgess();
             }, 250);
          },
          onAddSongKeyUp: function(evt){
             var key = evt.keyCode || evt.which,
                ENTER_KEY = 13;
+            var that = this;
             if(key == ENTER_KEY){
 
                var vid = extractYoutubeVid(this.addInput.val());
                if (vid){
-                  YTPlayer.loadId(vid);
                   this.$(".loading-sign").show();
                   this.$(".progress-text").hide();
                   this.addInput.val("");
+
+                  YTPlayer.loadId(vid);
+                  YTPlayer.getVideoInfo(vid, function(){
+                     that.updateVideoTitle();
+                  });
                }
 
                evt.preventDefault();
@@ -190,6 +206,9 @@
             // calculate the time to seek
             var time = x/$(evt.target).width() * this.duration;
 
+            this.elapsed = time;
+            this.updateProgressBar();
+
             YTPlayer.seekTo(time);
          },
          onPlayerStateChange: function(evt){
@@ -205,8 +224,8 @@
 
       var playerView = createPlayerView();
 
-
       YTPlayer.addOnStateChange($.proxy(playerView.onPlayerStateChange,playerView));
+
       playerView.updateState();
       $content.append(playerView.$el);
    }
@@ -215,19 +234,8 @@
    function success(p){
       // When Youtube library is loaded successfully
       YTPlayer = p;
-      /*
-      p.addOnStateChange(function(evt){
-         // buffering: show loading sign
-
-         // playing: show "pause" sign
-
-         // pause: show "playing" sign
-
-      });*/
-
 
       console.log("API loaded");
-      //player.playVideo();
    }
 
    function init(){

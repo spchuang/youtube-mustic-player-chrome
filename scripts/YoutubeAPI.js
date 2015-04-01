@@ -3,6 +3,22 @@
 
    var deferred = $.Deferred();
 
+   function getVideoInfo(videoId){
+
+      var deferred = $.Deferred();
+      $.get('https://gdata.youtube.com/feeds/api/videos/' + videoId + '?v=2&alt=json')
+         .then(function(res) {
+
+             var info = {
+                 title: res.entry.title.$t
+             }
+             deferred.resolve(info);
+         })
+
+      return deferred.promise();
+   }
+
+
    var events = {
       'onReady': function(){
          // pass a reference to this player object
@@ -43,16 +59,25 @@
    var YTPlayer = {
       init: function(){
          this.callback = null;
+         this.title = "";
          this.player = new YT.Player('player', {
             height: '390',
             width: '640',
-            videoId: 'OwHc05fu-YY',
             events: events
          });
       },
       loadId: function(vid){
+
+
          this.player.loadVideoById(vid, 0);
          this.player.playVideo();
+      },
+      getVideoInfo: function(vid, callback){
+         var that = this;
+         getVideoInfo(vid).then(function(res){
+            that.title = res.title;
+            callback(that.title);
+         });
       },
       onElapsedUpdate: function(){
 
@@ -70,7 +95,7 @@
          this.player.pauseVideo();
 
       },
-      
+
    }
 
    /*

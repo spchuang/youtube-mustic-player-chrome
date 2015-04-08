@@ -280,6 +280,11 @@
             _.each(YTPlayer.playlist.list, function(song){
                that.playlist.append(songItemTemplate(song));
             });
+
+            // mark the active tab
+            if(YTPlayer.playlist.currentIndex != null) {
+               this.playlist.children().eq(YTPlayer.playlist.currentIndex).addClass("active");;
+            }
          }
       });
    };
@@ -307,10 +312,9 @@
       console.log("API loaded");
 
       //testing
-      /*
+
       YTPlayer.playlist.addSong({vid: "AAklG2efzFw", title: "Song 1"});
       YTPlayer.playlist.addSong({vid: "69IUPs6qJw8", title: "Song 2"});
-      */
    }
 
    function init(){

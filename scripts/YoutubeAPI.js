@@ -70,6 +70,7 @@
             this.currentIndex = index;
             this.parent.loadVideo(this.list[this.currentIndex].vid);
             this.currentTitle = this.list[this.currentIndex].title;
+            this.parent.callbacks.onPlaylistChange();
          },
          delete: function(){
             // delete playlist
@@ -81,6 +82,13 @@
             }
          },
          deleteSong: function(index){
+            // when a song is deleted, we have to change the currentIndex to reflect the correct index in the new playlist
+            if (this.currentIndex = index) {
+               this.currentIndex = null;
+            } else if (this.currentIndex > index){
+               this.currentIndex -= 1;
+            }
+
             // delete song from playlist based on the index
             this.list.splice(index, 1);
             this.parent.callbacks.onPlaylistChange();

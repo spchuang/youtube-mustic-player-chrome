@@ -5,6 +5,22 @@
    /*
       Helper functions
    */
+   function getVideoInfo(videoId){
+
+      var deferred = $.Deferred();
+      $.get('https://gdata.youtube.com/feeds/api/videos/' + videoId + '?v=2&alt=json')
+         .then(function(res) {
+
+             var info = {
+                 title: res.entry.title.$t
+             }
+             deferred.resolve(info);
+         })
+      return deferred.promise();
+   }
+
+
+
    // Extract the vid of the youtube url link
    function extractYoutubeVid(url){
       var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -42,7 +58,10 @@
 
    var popupHtml = "\
       <div class='popup-wrap'>\
-      <label>Play music: </label><input type='text' class='add-music-input'>\
+      <label>Add song: </label><input type='text' class='add-music-input'><span class='loading-sign'></span>\
+      <hr>\
+      <div class='playlist-wrap list-group'>\
+      </div>\
       <hr>\
       <div class='video-title'><p></p></div>\
       <div class='player-view'>\
@@ -63,6 +82,13 @@
          <div class='time'></div>\
       </div></div>\
    ";
+
+   var songItemTemplate = Handlebars.compile("\
+      <a href='#' class='song-item list-group-item' data-vid='{{vid}}' data-title='{{title}}'>\
+         {{title}}\
+         <span class='badge delete-btn'>x</span>\
+      </a>\
+   ");
 
    var BaseView = {
       $el: null,
@@ -105,6 +131,7 @@
          $el: $(popupHtml),
          init: function(){
             this.addInput = this.$(".add-music-input");
+            this.playlist = this.$(".playlist-wrap");
             this.elapsed = YTPlayer.player.getCurrentTime();;
             this.duration = YTPlayer.player.getDuration();
 
@@ -118,11 +145,12 @@
             'click .progress' : "onProgressClick"
          },
          updateVideoTitle: function(){
-            this.$(".video-title p").text(YTPlayer.title);
+            this.$(".video-title p").text(YTPlayer.playlist.getCurrentTitle());
          },
          updateState: function(){
             // load correct initial state
             this.updateProgressBar();
+            this.updateVideoTitle();
 
             if(this.state === YT.PlayerState.BUFFERING) {
                this.$(".loading-sign").show();
@@ -168,18 +196,29 @@
             var key = evt.keyCode || evt.which,
                ENTER_KEY = 13;
             var that = this;
+
             if(key == ENTER_KEY){
+               // you can't add until it is a legitimate video
 
                var vid = extractYoutubeVid(this.addInput.val());
                if (vid){
+                  // show loading sign
+                  this.$(".loading-sign").text("loading...");
+                  getVideoInfo(vid).then(function(res){
+                     that.$(".loading-sign").text("");
+                     that.addInput.val("");
+
+                     // if this is successful, close loading sign, add song to playlist
+                     YTPlayer.playlist.addSong({
+                        vid: vid,
+                        title: res.title
+                     });
+                  });
+                  /*
                   this.$(".loading-sign").show();
                   this.$(".progress-text").hide();
                   this.addInput.val("");
-
-                  YTPlayer.loadId(vid);
-                  YTPlayer.getVideoInfo(vid, function(){
-                     that.updateVideoTitle();
-                  });
+                  YTPlayer.playlist.addSong(vid);*/
                }
 
                evt.preventDefault();
@@ -193,10 +232,10 @@
             }
          },
          onPrevClick: function(){
-            console.log("PREV");
+            YTPlayer.playlist.prevSong();
          },
          onNextClick: function(){
-            console.log("Next");
+            YTPlayer.playlist.nextSong();
          },
          onProgressClick: function(evt){
             // detect the horizontal position of the click
@@ -211,10 +250,36 @@
 
             YTPlayer.seekTo(time);
          },
-         onPlayerStateChange: function(evt){
+         onStateChange: function(evt){
+
             // response to player state changes
             this.state = evt.data;
             this.updateState();
+         },
+         renderPlaylist: function(){
+            // display the playlist and register the event handlers
+            this.updatePlaylist();
+
+            // only need to register this once, since we attach the event listener on parent div wrapper
+            this.playlist.on('click', '.song-item', function(evt){
+               var index = $(evt.target).closest(".song-item").index();
+               YTPlayer.playlist.playAtIndex(index);
+            });
+
+            this.playlist.on('click', '.delete-btn', function(evt){
+               var index = $(evt.target).closest('.song-item').index();
+               YTPlayer.playlist.deleteSong(index);
+               evt.stopPropagation();
+            });
+
+         },
+         updatePlaylist: function(){
+            // rerender the playlist (add/delete songs)
+            var that = this;
+            this.playlist.empty();
+            _.each(YTPlayer.playlist.list, function(song){
+               that.playlist.append(songItemTemplate(song));
+            });
          }
       });
    };
@@ -224,9 +289,13 @@
 
       var playerView = createPlayerView();
 
-      YTPlayer.addOnStateChange($.proxy(playerView.onPlayerStateChange,playerView));
+      YTPlayer.registerCallbacks({
+         onStateChange: $.proxy(playerView.onStateChange,playerView),
+         onPlaylistChange: $.proxy(playerView.updatePlaylist,playerView)
+      });
 
       playerView.updateState();
+      playerView.renderPlaylist();
       $content.append(playerView.$el);
    }
 
@@ -236,6 +305,12 @@
       YTPlayer = p;
 
       console.log("API loaded");
+
+      //testing
+      /*
+      YTPlayer.playlist.addSong({vid: "AAklG2efzFw", title: "Song 1"});
+      YTPlayer.playlist.addSong({vid: "69IUPs6qJw8", title: "Song 2"});
+      */
    }
 
    function init(){

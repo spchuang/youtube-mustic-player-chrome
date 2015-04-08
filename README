@@ -4,12 +4,12 @@ A chrome plugin for playing youtube videos. It can play music from Youtube in th
 
 Requirements
 ----------------
-Must be able to stream audio from YouTube (must not output video)
-Must be able to play audio in background
-Must be lightweight (can be played without YT page open)
+DONE- Must be able to stream audio from YouTube (must not output video)
+DONE - Must be able to play audio in background
+DONE - Must be lightweight (can be played without YT page open)
 Must be able to add songs to playlists using YT URLs with your custom name
 Must be able to save playlists (either to an account or to browser custom data)
-Must be able to play, pause, change volume, skip track, seek
+DONE - Must be able to play, pause, change volume, skip track, seek
 Must be able to add multiple playlists, as well as rearrange them, and delete them
 
 How to install
@@ -25,7 +25,6 @@ Basic design
 -------------------
 Background:
 - background.js
-
 Wire up the DOM with youtubeAPI.
 
 
@@ -38,3 +37,8 @@ Loads the Youtube iframe API dynamically and setups up the youtube player in the
 Popup:
 - popup.js
 Get an instance of the popup view from background.js
+
+
+// Playlist
+- Add {video title, id}
+- create/delete/drag to playlist, play from playlist, 

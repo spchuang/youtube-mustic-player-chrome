@@ -12,11 +12,6 @@
          // handle its own handler
 
          // handle external listeners
-         /*_.each(YTPlayer.callbacks, function(cb){
-            if(_.isFunction(cb)){
-               cb(evt);
-            }
-         });*/
          if(_.isFunction(YTPlayer.callbacks.onStateChange)){
             YTPlayer.callbacks.onStateChange(evt);
          }
@@ -40,62 +35,86 @@
          init: function(){
             this.list = [];
             this.parent = parent;
+            this.currentPlaylistIndex = null;
             this.currentIndex = null;
             this.currentTitle = "";
          },
          loadFromStorage: function(){
-
+            // this and saveToStorage shoudl be reverse functions
          },
-         add: function(){
-            // add new playlist
+         saveToStorage: function(){
 
          },
          nextSong: function(){
             // play next song in the playlist (loop)
             var index = this.currentIndex + 1;
-            if (index === this.list.length){
+            if (index === this.getPlaylist(this.currentPlaylistIndex).length){
                index = 0;
             }
-            this.playAtIndex(index);
+            this.playAtIndex(this.currentPlaylistIndex, index);
          },
          prevSong: function(){
             // play the prev song in the playlist
             var index = this.currentIndex - 1;
             if (index < 0 ){
-               index = this.list.length-1;
+               index = this.getPlaylist(this.currentPlaylistIndex).length-1;
             }
-            this.playAtIndex(index);
+            this.playAtIndex(this.currentPlaylistIndex, index);
          },
-         playAtIndex : function(index){
+         playAtIndex : function(playlistIndex, index){
             this.currentIndex = index;
-            this.parent.loadVideo(this.list[this.currentIndex].vid);
-            this.currentTitle = this.list[this.currentIndex].title;
+            this.currentPlaylistIndex = playlistIndex;
+
+            var song = this.getPlaylist(this.currentPlaylistIndex)[this.currentIndex];
+            this.parent.loadVideo(song.vid);
+            this.currentTitle = song.title;
             this.parent.callbacks.onPlaylistChange();
          },
-         delete: function(){
+         selectPlaylist: function(index){
+            if(index >=0 && index < this.list.length){
+               this.currentPlaylistIndex = index;
+               this.curentIndex = null;
+            }
+         },
+         addPlaylist: function(name){
+            // add new playlist
+            this.list.push({
+               name: name,
+               songs: []
+            });
+            if(this.parent.callbacks){
+               this.parent.callbacks.onPlaylistChange(true);
+            }
+         },
+         deletePlaylist: function(index){
             // delete playlist
          },
-         addSong: function(song){
-            this.list.push(song);
+         addSong: function(playlistIndex, song){
+            this.getPlaylist(playlistIndex).push(song);
             if(this.parent.callbacks){
                this.parent.callbacks.onPlaylistChange();
             }
          },
-         deleteSong: function(index){
-            // when a song is deleted, we have to change the currentIndex to reflect the correct index in the new playlist
-            if (this.currentIndex = index) {
-               this.currentIndex = null;
-            } else if (this.currentIndex > index){
-               this.currentIndex -= 1;
+         deleteSong: function(playlistIndex, index){
+            // if delete a song from the playlist we're playing right now
+            if (this.currentPlaylistIndex === playlistIndex ){
+               // when a song is deleted, we have to change the currentIndex to reflect the correct index in the new playlist
+               if (this.currentIndex === index) {
+                  this.currentIndex = null;
+               } else if (this.currentIndex > index){
+                  this.currentIndex -= 1;
+               }
             }
 
             // delete song from playlist based on the index
-            this.list.splice(index, 1);
+            this.getPlaylist(playlistIndex).splice(index, 1);
             this.parent.callbacks.onPlaylistChange();
          },
          getCurrentTitle: function(){
             return this.currentTitle;
-
+         },
+         getPlaylist: function(index){
+            return this.list[index].songs;
          }
       };
       p.init();
@@ -122,9 +141,6 @@
       getVideoInfo: function(vid, callback){
          var that = this;
       },
-      onElapsedUpdate: function(){
-
-      },
       seekTo: function(val) {
           this.player.seekTo(val);
       },
@@ -133,7 +149,6 @@
       },
       pause: function() {
          this.player.pauseVideo();
-
       },
       registerCallbacks: function(callbacks){
         // add callback for "onStateChange", "onPlaylistChange"
@@ -159,7 +174,6 @@
    window.onYouTubeIframeAPIReady = function() {
       YTPlayer.init();
    }
-
 
    // expose this for global access
    $.loadYoutubeAPI = function(){

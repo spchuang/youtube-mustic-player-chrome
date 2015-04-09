@@ -58,10 +58,11 @@
 
    var popupHtml = "\
       <div class='popup-wrap'>\
-      <label>Add song: </label><input type='text' class='add-music-input'><span class='loading-sign'></span>\
+      <div><label>Add playlist: </label><input type='text' class='new-name-input'></div>\
+      <div><label>Add song: </label><input type='text' class='add-music-input'><span class='loading-sign'></span><div>\
+      <label>Playlist: </label><select class='playlist-select-control'></select>\
       <hr>\
-      <div class='playlist-wrap list-group'>\
-      </div>\
+      <div class='playlist-wrap list-group'></div>\
       <hr>\
       <div class='video-title'><p></p></div>\
       <div class='player-view'>\
@@ -83,11 +84,21 @@
       </div></div>\
    ";
 
-   var songItemTemplate = Handlebars.compile("\
-      <a href='#' class='song-item list-group-item' data-vid='{{vid}}' data-title='{{title}}'>\
-         {{title}}\
-         <span class='badge delete-btn'>x</span>\
-      </a>\
+   var playlistSelectTemplate = Handlebars.compile("\
+      {{#each playlists}}\
+         <option value={{@index}}>{{name}}</option>\
+      {{/each}}\
+   ");
+
+   var playlistTemplate = Handlebars.compile("\
+      {{#each songs}}\
+         <a href='#' class='song-item list-group-item' data-vid='{{vid}}' data-title='{{title}}'>\
+            {{title}}\
+            <span class='badge delete-btn'>x</span>\
+         </a>\
+      {{else}}\
+         <div>empty playlist...</div>\
+      {{/each}}\
    ");
 
    var BaseView = {
@@ -131,18 +142,25 @@
          $el: $(popupHtml),
          init: function(){
             this.addInput = this.$(".add-music-input");
+            this.playlistNameInput = this.$(".new-name-input");
             this.playlist = this.$(".playlist-wrap");
+            this.playlistSelect = this.$(".playlist-select-control");
+
             this.elapsed = YTPlayer.player.getCurrentTime();;
             this.duration = YTPlayer.player.getDuration();
-
             this.state = YTPlayer.player.getPlayerState();
+
+            // keeping track of which playlist is currently displaying (not necessarily the one playing)
+            this.currentPlaylistIndex = YTPlayer.playlist.currentPlaylistIndex;
          },
          events: {
             "keydown .add-music-input" : "onAddSongKeyUp",
             'click .action-btn': 'onActionClick',
             'click .next-btn' : 'onNextClick',
             "click .prev-btn" : "onPrevClick",
-            'click .progress' : "onProgressClick"
+            'click .progress' : "onProgressClick",
+            "keydown .new-name-input": "onPlaylistNameKeyUp",
+            "change .playlist-select-control": "onPlaylistSelect"
          },
          updateVideoTitle: function(){
             this.$(".video-title p").text(YTPlayer.playlist.getCurrentTitle());
@@ -192,6 +210,25 @@
                that.updateProgess();
             }, 250);
          },
+         onPlaylistSelect: function(evt){
+            this.currentPlaylistIndex = parseInt($(evt.target).find("option:selected").val());
+            this.updatePlaylist();
+         },
+         onPlaylistNameKeyUp: function(evt){
+            var key = evt.keyCode || evt.which,
+               ENTER_KEY = 13;
+            var that = this;
+
+            if(key == ENTER_KEY){
+               YTPlayer.playlist.addPlaylist(this.playlistNameInput.val());
+               this.playlistNameInput.val("");
+
+               // Switch to the new playlist if this is the only one
+               if(this.currentPlaylistIndex === null){
+
+               }
+            }
+         },
          onAddSongKeyUp: function(evt){
             var key = evt.keyCode || evt.which,
                ENTER_KEY = 13;
@@ -209,16 +246,12 @@
                      that.addInput.val("");
 
                      // if this is successful, close loading sign, add song to playlist
-                     YTPlayer.playlist.addSong({
+                     YTPlayer.playlist.addSong(that.currentPlaylistIndex,
+                     {
                         vid: vid,
                         title: res.title
                      });
                   });
-                  /*
-                  this.$(".loading-sign").show();
-                  this.$(".progress-text").hide();
-                  this.addInput.val("");
-                  YTPlayer.playlist.addSong(vid);*/
                }
 
                evt.preventDefault();
@@ -257,32 +290,42 @@
             this.updateState();
          },
          renderPlaylist: function(){
-            // display the playlist and register the event handlers
-            this.updatePlaylist();
+            // NOTE: this only gets triggered once initially to display the playlist and register the event handlers
+
+            this.updatePlaylist(true);
+            var that = this;
 
             // only need to register this once, since we attach the event listener on parent div wrapper
             this.playlist.on('click', '.song-item', function(evt){
                var index = $(evt.target).closest(".song-item").index();
-               YTPlayer.playlist.playAtIndex(index);
+               YTPlayer.playlist.playAtIndex(that.currentPlaylistIndex, index);
             });
 
             this.playlist.on('click', '.delete-btn', function(evt){
                var index = $(evt.target).closest('.song-item').index();
-               YTPlayer.playlist.deleteSong(index);
+               YTPlayer.playlist.deleteSong(that.currentPlaylistIndex, index);
                evt.stopPropagation();
             });
-
          },
-         updatePlaylist: function(){
-            // rerender the playlist (add/delete songs)
+         updatePlaylist: function(renderSelect){
+            // rerender the playlist (add/delete songs), flag to render the select component (if add/remove selects)
             var that = this;
-            this.playlist.empty();
-            _.each(YTPlayer.playlist.list, function(song){
-               that.playlist.append(songItemTemplate(song));
-            });
 
-            // mark the active tab
-            if(YTPlayer.playlist.currentIndex != null) {
+            if(renderSelect){
+               // render select
+               this.playlistSelect.empty().append(playlistSelectTemplate({
+                  playlists: YTPlayer.playlist.list
+               }));
+               this.playlistSelect.children().eq(YTPlayer.playlist.currentPlaylistIndex).attr("selected","selected");
+            }
+
+            // render song list from the current playlist
+            this.playlist.empty().append(playlistTemplate({
+               songs: YTPlayer.playlist.getPlaylist(this.currentPlaylistIndex)
+            }));
+
+            // if the currently viewing playlist is the same as the one playing
+            if(this.currentPlaylistIndex === YTPlayer.playlist.currentPlaylistIndex && YTPlayer.playlist.currentIndex != null) {
                this.playlist.children().eq(YTPlayer.playlist.currentIndex).addClass("active");;
             }
          }
@@ -308,13 +351,18 @@
    function success(p){
       // When Youtube library is loaded successfully
       YTPlayer = p;
+      YTPlayer.player.setVolume(100);
+      YTPlayer.player.unMute();
 
       console.log("API loaded");
 
       //testing
-
-      YTPlayer.playlist.addSong({vid: "AAklG2efzFw", title: "Song 1"});
-      YTPlayer.playlist.addSong({vid: "69IUPs6qJw8", title: "Song 2"});
+      YTPlayer.playlist.addPlaylist("test");
+      YTPlayer.playlist.addPlaylist("test2");
+      YTPlayer.playlist.addPlaylist("test3");
+      YTPlayer.playlist.selectPlaylist(1);
+      YTPlayer.playlist.addSong(1, {vid: "AAklG2efzFw", title: "Song 1"});
+      YTPlayer.playlist.addSong(1, {vid: "69IUPs6qJw8", title: "Song 2"});
    }
 
    function init(){

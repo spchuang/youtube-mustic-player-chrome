@@ -11,6 +11,7 @@
       'onStateChange': function(evt){
          // handle its own handler
 
+
          // handle external listeners
          if(_.isFunction(YTPlayer.callbacks.onStateChange)){
             YTPlayer.callbacks.onStateChange(evt);
@@ -67,7 +68,6 @@
             chrome.storage.sync.set({
                "data": data
             });
-            console.log(data);
          },
          onStateChange: function(renderSelect){
             this.saveToStorage();
@@ -115,8 +115,13 @@
             });
             this.onStateChange(true);
          },
-         deletePlaylist: function(index){
+         deletePlaylist: function(playlistIndex){
             // delete playlist
+            if (this.currentPlaylistIndex === playlistIndex ){
+               this.currentPlaylistIndex = null;
+            }
+            this.list.splice(playlistIndex, 1);
+            this.onStateChange(true);
          },
          addSong: function(playlistIndex, song){
             this.getPlaylist(playlistIndex).push(song);

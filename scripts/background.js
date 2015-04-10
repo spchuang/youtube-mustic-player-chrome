@@ -61,6 +61,7 @@
       <div><label>Add playlist: </label><input type='text' class='new-name-input'></div>\
       <div><label>Add song: </label><input type='text' class='add-music-input'><span class='loading-sign'></span><div>\
       <label>Playlist: </label><select class='playlist-select-control'></select>\
+      <button class='delete-playlist-btn'>Delete playlist</button>\
       <hr>\
       <div class='playlist-wrap list-group'></div>\
       <hr>\
@@ -159,6 +160,7 @@
             'click .next-btn' : 'onNextClick',
             "click .prev-btn" : "onPrevClick",
             'click .progress' : "onProgressClick",
+            "click .delete-playlist-btn": "onDeletePlaylistClick",
             "keydown .new-name-input": "onPlaylistNameKeyUp",
             "change .playlist-select-control": "onPlaylistSelect"
          },
@@ -166,6 +168,11 @@
             this.$(".video-title p").text(YTPlayer.playlist.getCurrentTitle());
          },
          updateState: function(){
+            // if it's end of song, continue to next
+            if (YT.PlayerState.ENDED === this.state) {
+               YTPlayer.playlist.nextSong();
+            }
+
             // load correct initial state
             this.updateProgressBar();
             this.updateVideoTitle();
@@ -213,6 +220,17 @@
          onPlaylistSelect: function(evt){
             this.currentPlaylistIndex = parseInt($(evt.target).find("option:selected").val());
             this.updatePlaylist();
+         },
+         onDeletePlaylistClick: function(){
+            // move currentPlaylistIndex to first index
+            var removeIndex = this.currentPlaylistIndex;
+            if (YTPlayer.playlist.list.length > 1){
+               this.currentPlaylistIndex = 0;
+            } else {
+               this.currentPlaylistIndex = null;
+            }
+
+            YTPlayer.playlist.deletePlaylist(removeIndex);
          },
          onPlaylistNameKeyUp: function(evt){
             var key = evt.keyCode || evt.which,

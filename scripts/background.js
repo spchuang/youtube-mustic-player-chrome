@@ -220,13 +220,14 @@
             var that = this;
 
             if(key == ENTER_KEY){
+               // Switch to the new playlist if this is the only one
+               if(this.currentPlaylistIndex === null){
+                  this.currentPlaylistIndex = 0;
+                  YTPlayer.playlist.currentPlaylistIndex = 0;
+               }
                YTPlayer.playlist.addPlaylist(this.playlistNameInput.val());
                this.playlistNameInput.val("");
 
-               // Switch to the new playlist if this is the only one
-               if(this.currentPlaylistIndex === null){
-
-               }
             }
          },
          onAddSongKeyUp: function(evt){
@@ -318,7 +319,6 @@
                }));
                this.playlistSelect.children().eq(YTPlayer.playlist.currentPlaylistIndex).attr("selected","selected");
             }
-
             // render song list from the current playlist
             this.playlist.empty().append(playlistTemplate({
                songs: YTPlayer.playlist.getPlaylist(this.currentPlaylistIndex)
@@ -355,14 +355,6 @@
       YTPlayer.player.unMute();
 
       console.log("API loaded");
-
-      //testing
-      YTPlayer.playlist.addPlaylist("test");
-      YTPlayer.playlist.addPlaylist("test2");
-      YTPlayer.playlist.addPlaylist("test3");
-      YTPlayer.playlist.selectPlaylist(1);
-      YTPlayer.playlist.addSong(1, {vid: "AAklG2efzFw", title: "Song 1"});
-      YTPlayer.playlist.addSong(1, {vid: "69IUPs6qJw8", title: "Song 2"});
    }
 
    function init(){

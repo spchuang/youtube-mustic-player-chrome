@@ -33,17 +33,48 @@
    var PlaylistController = function(parent){
       var p = {
          init: function(){
-            this.list = [];
+
             this.parent = parent;
-            this.currentPlaylistIndex = null;
-            this.currentIndex = null;
-            this.currentTitle = "";
+
+            this.loadFromStorage();
          },
          loadFromStorage: function(){
             // this and saveToStorage shoudl be reverse functions
+            var that = this;
+
+            //chrome.storage.sync.clear();
+            chrome.storage.sync.get("data", function(data) {
+               data.data = data.data || {};
+               var val = _.defaults(data.data, {
+                  "currentPlaylistIndex": null,
+                  "list": [],
+                  "currentIndex": null,
+                  "currentTitle": ""
+               })
+               that.currentPlaylistIndex = val.currentPlaylistIndex;
+               that.list = val.list;
+               that.currentTitle = val.currentTitle;
+               that.currentIndex = val.currentIndex;
+            });
          },
          saveToStorage: function(){
+            var data = {
+               "currentPlaylistIndex": this.currentPlaylistIndex,
+               "list": this.list,
+               "currentIndex": this.currentIndex,
+               "currentTitle": this.currentTitle,
+            };
+            chrome.storage.sync.set({
+               "data": data
+            });
+            console.log(data);
+         },
+         onStateChange: function(renderSelect){
+            this.saveToStorage();
 
+            if(this.parent.callbacks){
+               this.parent.callbacks.onPlaylistChange(renderSelect);
+            }
          },
          nextSong: function(){
             // play next song in the playlist (loop)
@@ -68,7 +99,7 @@
             var song = this.getPlaylist(this.currentPlaylistIndex)[this.currentIndex];
             this.parent.loadVideo(song.vid);
             this.currentTitle = song.title;
-            this.parent.callbacks.onPlaylistChange();
+            this.onStateChange();
          },
          selectPlaylist: function(index){
             if(index >=0 && index < this.list.length){
@@ -82,18 +113,14 @@
                name: name,
                songs: []
             });
-            if(this.parent.callbacks){
-               this.parent.callbacks.onPlaylistChange(true);
-            }
+            this.onStateChange(true);
          },
          deletePlaylist: function(index){
             // delete playlist
          },
          addSong: function(playlistIndex, song){
             this.getPlaylist(playlistIndex).push(song);
-            if(this.parent.callbacks){
-               this.parent.callbacks.onPlaylistChange();
-            }
+            this.onStateChange();
          },
          deleteSong: function(playlistIndex, index){
             // if delete a song from the playlist we're playing right now
@@ -108,13 +135,17 @@
 
             // delete song from playlist based on the index
             this.getPlaylist(playlistIndex).splice(index, 1);
-            this.parent.callbacks.onPlaylistChange();
+            this.onStateChange();
          },
          getCurrentTitle: function(){
             return this.currentTitle;
          },
-         getPlaylist: function(index){
-            return this.list[index].songs;
+         getPlaylist: function(playlistIndex){
+            if (playlistIndex >= 0 && playlistIndex < this.list.length){
+               return this.list[playlistIndex].songs;
+            }
+
+            return [];
          }
       };
       p.init();

@@ -13,7 +13,7 @@
    "permissions": [
       "http://*/*",
       "https://*/*",
-      "tabs"
+      "storage"
    ],
    "content_security_policy": "script-src 'self' 'unsafe-eval' https://ssl.google-analytics.com https://www.youtube.com https://s.ytimg.com https://gdata.youtube.com; object-src 'self'",
    "background": {
